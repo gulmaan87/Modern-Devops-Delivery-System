@@ -37,7 +37,7 @@ async def startup_db_client():
     global mongodb_client, mongodb_db
     try:
         # Get MongoDB Atlas connection string from environment variable
-        database_url = os.getenv("DATABASE_URL")
+        database_url = os.getenv("MONGODB_ATLAS_URL")
         
         if not database_url:
             print("⚠️  WARNING: DATABASE_URL not set. MongoDB connection will fail.")
