@@ -93,6 +93,7 @@ async def health_check():
 
 # Root endpoint
 @app.get("/")
+@app.head("/")
 async def root():
     """Root endpoint"""
     return {
