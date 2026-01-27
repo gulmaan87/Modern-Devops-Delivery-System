@@ -1,0 +1,69 @@
+stages:
+  - test
+  - build
+
+variables:
+  # Use Docker-in-Docker
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Image names for backend and frontend
+  BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/backend"
+  FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
+
+default:
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    # Log in to GitLab Container Registry
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+# --- TEST STAGE ---
+
+backend_tests:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - pip install --no-cache-dir -r backend/requirements.txt
+  script:
+    # For now, just check that the app starts without crashing
+    - python -m py_compile backend/main.py
+  only:
+    - merge_requests
+    - main
+
+frontend_tests:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    # CRA uses CI=true to run tests non-interactively
+    - cd frontend
+    - CI=true npm test -- --watch=false
+  only:
+    - merge_requests
+    - main
+
+# --- BUILD STAGE ---
+
+build_backend_image:
+  stage: build
+  script:
+    - docker build -t "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA" -f backend/Dockerfile backend
+    - docker tag "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA" "$BACKEND_IMAGE:latest"
+    - docker push "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$BACKEND_IMAGE:latest"
+  only:
+    - main
+
+build_frontend_image:
+  stage: build
+  script:
+    - docker build -t "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA" -f frontend/Dockerfile frontend
+    - docker tag "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA" "$FRONTEND_IMAGE:latest"
+    - docker push "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$FRONTEND_IMAGE:latest"
+  only:
+    - main
