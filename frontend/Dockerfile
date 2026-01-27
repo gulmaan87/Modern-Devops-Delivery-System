@@ -1,5 +1,5 @@
 # Multi-stage build for production-ready React frontend
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 

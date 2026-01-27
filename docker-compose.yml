@@ -1,42 +1,19 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: devops-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-devopsdb}
-      POSTGRES_USER: ${POSTGRES_USER:-devopsuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devopspass}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devopsuser}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - devops-network
-
   # FastAPI Backend
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: devops-backend
+    env_file:
+      - .env
     environment:
       - PORT=8000
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-devopsuser}:${POSTGRES_PASSWORD:-devopspass}@postgres:5432/${POSTGRES_DB:-devopsdb}
+      - DATABASE_URL=${MONGODB_ATLAS_URL}
       - CORS_ORIGINS=http://localhost:3000,http://localhost:80
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -54,11 +31,12 @@ services:
       dockerfile: Dockerfile
     container_name: devops-frontend
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_API_URL=http://backend:8000
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -68,10 +46,6 @@ services:
     networks:
       - devops-network
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
 
 networks:
   devops-network:
