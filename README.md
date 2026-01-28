@@ -35,6 +35,8 @@ docker-compose down
 
 ## 🌐 Live URLs
 
+- **Frontend**: `https://modern-devops-delevery-system-1.onrender.com`
+
 - **Backend API**: `https://modern-devops-delevery-system.onrender.com`
 - **Health**: `https://modern-devops-delevery-system.onrender.com/health`
 - **Status**: `https://modern-devops-delevery-system.onrender.com/api/status`
